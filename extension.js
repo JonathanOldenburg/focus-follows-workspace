@@ -32,9 +32,13 @@ class Extension {
             WindowManager.WindowManager.prototype.actionMoveWorkspace;
         const self = this;
         WindowManager.WindowManager.prototype.actionMoveWorkspace = function (workspace) {
+            const activeWs = global.workspaceManager.get_active_workspace();
+            const windows = AltTab.getWindows(activeWs);
+            const activeWindow = windows[0];
+
             self._actionMoveWorkspaceOriginal.apply(this, arguments);
             if (!self._wasScrollEvent) {
-                self._focusPrimaryMonitor();
+                self._focusPrimaryMonitor(activeWindow.get_monitor() !== Main.layoutManager.primaryIndex && activeWindow);
             }
             self._wasScrollEvent = false; // reset
         };
@@ -54,15 +58,15 @@ class Extension {
     }
 
     /** Focus the most recently focused window of the current workspace on the primary monitor. */
-    _focusPrimaryMonitor() {
+    _focusPrimaryMonitor(window) {
         // `AltTab.getWindows` might return windows of the current monitor only. We move the pointer
         // to the primary monitor to make it the current one.
-        this._movePointerToPrimaryMonitor();
+        // this._movePointerToPrimaryMonitor();
         // Wait a tick for the current monitor to be updated reliably.
         Mainloop.timeout_add(0, () => {
             const activeWs = global.workspaceManager.get_active_workspace();
             const windows = AltTab.getWindows(activeWs);
-            const mostRecentWindowOnPrimaryMonitor = windows.find(
+            const mostRecentWindowOnPrimaryMonitor = window || windows.find(
                 (window) => window.get_monitor() === Main.layoutManager.primaryIndex,
             );
             if (mostRecentWindowOnPrimaryMonitor) {
@@ -74,14 +78,14 @@ class Extension {
         });
     }
 
-    /** Move the pointer to the primary monitor if it is not already there. */
+    /** Move the pointer to the primary monitor if it is not already there. 
     _movePointerToPrimaryMonitor() {
         if (global.display.get_current_monitor() !== Main.layoutManager.primaryIndex) {
             const seat = Clutter.get_default_backend().get_default_seat();
             const rect = global.display.get_monitor_geometry(Main.layoutManager.primaryIndex);
             seat.warp_pointer(rect.x + rect.width / 2, rect.y + rect.height / 2);
         }
-    }
+    }*/
 }
 
 function init() {
